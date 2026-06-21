@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dinamica Autovehiculelor — Calculator de Proiectare</title>
+<meta name="description" content="Aplicatie de calcul pentru proiectul de Dinamica Autovehiculelor: tractiune, franare, maniabilitate si stabilitate, cu raport PDF complet.">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+
+<!-- librarii client-side: grafice si export PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+<div class="mobile-tabs" id="mobileTabs"></div>
+
+<div class="app-shell">
+
+  <!-- ============== SIDEBAR ============== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><span class="pip"></span>DINAMICA&nbsp;AUTO</div>
+      <div class="brand-sub">Calculator proiect &middot; v1.0</div>
+    </div>
+
+    <ul class="nav-steps" id="navSteps">
+      <li class="nav-step active" data-panel="panel-intro"><span class="num">00</span>Prezentare</li>
+      <li class="nav-step" data-panel="panel-params"><span class="num">01</span>Parametri proiectare</li>
+      <li class="nav-step" data-panel="panel-tractiune"><span class="num">02</span>Calcul tracțiune</li>
+      <li class="nav-step" data-panel="panel-franare"><span class="num">03</span>Calcul frânare</li>
+      <li class="nav-step" data-panel="panel-maniabilitate"><span class="num">04</span>Maniabilitate &amp; stabilitate</li>
+      <li class="nav-step" data-panel="panel-raport"><span class="num">05</span>Raport final PDF</li>
+    </ul>
+
+    <div class="sidebar-foot">
+      <div class="gauge-mini"><span id="statusDot" style="width:7px;height:7px;border-radius:50%;background:#5C6677;display:inline-block;"></span><span id="statusText">Astept parametri</span></div>
+    </div>
+  </aside>
+
+  <!-- ============== MAIN ============== -->
+  <main class="main">
+
+    <!-- ---------- PANEL 0: INTRO ---------- -->
+    <section class="panel active" id="panel-intro">
+      <div class="hero">
+        <div>
+          <p class="panel-eyebrow">Indrumar de proiectare &middot; Univ. Ovidius Constanta</p>
+          <h1>Calculeaza dinamica<br><em>autovehiculului</em> tau.</h1>
+          <p class="lead">Introdu parametrii constructivi ai autovehiculului — motor, transmisie, pneuri, greutati — si aplicatia parcurge automat tot calculul din indrumar: caracteristica externa a motorului, viteza maxima, rapoartele cutiei de viteze, bilantul de tractiune si putere, franarea si maniabilitatea. La final, descarci un raport PDF complet cu toate tabelele si graficele.</p>
+          <div class="btn-row" style="margin-top:0;">
+            <button class="btn primary" id="btnStart">Incepe proiectul &rarr;</button>
+            <button class="btn ghost" id="btnLoadExample">Incarca exemplul din carte (Anexa A14)</button>
+          </div>
+        </div>
+        <div class="gauge-wrap">
+          <svg viewBox="0 0 320 320" width="320" height="320" id="heroGauge" aria-hidden="true">
+            <circle cx="160" cy="160" r="138" fill="none" stroke="#1C212B" stroke-width="2"></circle>
+            <circle cx="160" cy="160" r="118" fill="none" stroke="#2A3140" stroke-width="1"></circle>
+            <g id="gaugeTicks"></g>
+            <text x="160" y="150" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" fill="#8B93A3">TURATIE MOTOR</text>
+            <text x="160" y="178" text-anchor="middle" font-family="Space Grotesk" font-size="34" font-weight="700" fill="#F5F3ED" id="gaugeNumber">0</text>
+            <text x="160" y="200" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#FF5A1F">rot/min</text>
+            <line id="needle" x1="160" y1="160" x2="160" y2="60" stroke="#FF5A1F" stroke-width="3" stroke-linecap="round" style="transform-origin:160px 160px; transform:rotate(-120deg); transition: transform 1.4s cubic-bezier(.2,.8,.2,1);"></line>
+            <circle cx="160" cy="160" r="7" fill="#FF5A1F"></circle>
+          </svg>
+        </div>
+      </div>
+
+      <div class="kpi-row" style="margin-top:30px;">
+        <div class="kpi"><div class="kpi-label">Capitol 1</div><div class="kpi-value" style="font-size:15px;">Calcul de tracțiune</div></div>
+        <div class="kpi"><div class="kpi-label">Capitol 2</div><div class="kpi-value" style="font-size:15px;">Calcul la frânare</div></div>
+        <div class="kpi"><div class="kpi-label">Capitol 3</div><div class="kpi-value" style="font-size:15px;">Maniabilitate &amp; stabilitate</div></div>
+      </div>
+
+      <div class="footer-note">
+        Toate formulele si tabelele de referinta sunt preluate din indrumarul "Dinamica Autovehiculelor" (Prof.univ.dr.ing. Manea Adriana-Teodora). Calculul reproduce metodologia exemplului A14. Aplicatia ruleaza integral in browser — datele introduse nu parasesc dispozitivul tau.
+      </div>
+    </section>
+
+    <!-- ---------- PANEL 1: PARAMETRI ---------- -->
+    <section class="panel" id="panel-params">
+      <div class="panel-head">
+        <div>
+          <p class="panel-eyebrow">Pasul 01</p>
+          <h2 class="panel-title">Parametri de proiectare</h2>
+        </div>
+        <p class="panel-desc">Completeaza fisa tehnica a autovehiculului. Valorile implicite provin din exemplul de calcul al indrumarului (Anexa A14) — le poti pastra sau inlocui.</p>
+      </div>
+
+      <form id="paramForm">
+
+        <details class="field-group" open>
+          <summary>1 &middot; Greutati si formula de organizare <span class="chev">&rsaquo;</span></summary>
+          <div class="fg-body">
+            <div class="field">
+              <label>Greutate totala G <span class="unit">daN</span></label>
+              <input type="number" id="G_total_daN" step="any" required>
+            </div>
+            <div class="field">
+              <label>Greutate proprie G0 <span class="unit">daN</span></label>
+              <input type="number" id="G0_daN" step="any" required>
+            </div>
+            <div class="field">
+              <label>Numar persoane in cabina <span class="unit">n</span></label>
+              <input type="number" id="nPersoane" step="1" required>
+            </div>
+            <div class="field">
+              <label>Greutate / persoana <span class="unit">daN</span></label>
+              <input type="number" id="Gpersoana_daN" step="any" required>
+            </div>
+            <div class="field">
+              <label>Ampatament L <span class="unit">m</span></label>
+              <input type="number" id="L" step="any" required>
+            </div>
+            <div class="field">
+              <label>Tip autovehicul (pt. coordonate CG) <span class="unit">tab. 3.2</span></label>
+              <select id="tipAutovehicul">
+                <option value="custom">Personalizat (introduc manual)</option>
+                <option value="0">Autoturisme</option>
+                <option value="1" selected>Autocamioane</option>
+                <option value="2">Autobuze</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>b/L incarcat (CG &rarr; puntea spate)</label>
+              <input type="number" id="bL_incarcat" step="any" required>
+            </div>
+            <div class="field">
+              <label>hg/L incarcat</label>
+              <input type="number" id="hgL_incarcat" step="any" required>
+            </div>
+            <div class="field">
+              <label>hg/L descarcat</label>
+              <input type="number" id="hgL_descarcat" step="any" required>
+            </div>
+          </div>
+        </details>
+
+        <details class="field-group" open>
+          <summary>2 &middot; Motor — caracteristica externa <span class="chev">&rsaquo;</span></summary>
+          <div class="fg-body">
+            <div class="field">
+              <label>Tip motor</label>
+              <select id="motorType">
+                <option value="MAC" selected>MAC (Diesel)</option>
+                <option value="MAS">MAS (benzina)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Putere nominala Pen <span class="unit">kW</span></label>
+              <input type="number" id="Pen" step="any" required>
+            </div>
+            <div class="field">
+              <label>Turatie nominala nn <span class="unit">rot/min</span></label>
+              <input type="number" id="nn" step="1" required>
+            </div>
+            <div class="field">
+              <label>Turatie minima nmin <span class="unit">rot/min</span></label>
+              <input type="number" id="nmin" step="1" required>
+            </div>
+            <div class="field">
+              <label>Turatie maxima nmax <span class="unit">rot/min</span></label>
+              <input type="number" id="nmax" step="1" required>
+            </div>
+            <div class="field">
+              <label>Coeficient elasticitate ke <span class="unit">0.45-0.75</span></label>
+              <input type="number" id="ke" step="any" required>
+            </div>
+            <div class="field">
+              <label>Putere calorica Qinf <span class="unit">kJ/kg</span></label>
+              <input type="number" id="Qinf" step="any" required>
+            </div>
+            <div class="field">
+              <label>Randament efectiv &eta;l</label>
+              <input type="number" id="eta_l" step="any" required>
+            </div>
+          </div>
+        </details>
+
+        <details class="field-group">
+          <summary>3 &middot; Pneuri <span class="chev">&rsaquo;</span></summary>
+          <div class="fg-body">
+            <div class="field">
+              <label>Anvelopa (tab. A1)</label>
+              <select id="anvelopaSelect"></select>
+            </div>
+            <div class="field">
+              <label>Diametru exterior Dn <span class="unit">inch</span></label>
+              <input type="number" id="Dn_in" step="any" required>
+            </div>
+            <div class="field">
+              <label>Diametru janta d <span class="unit">inch</span></label>
+              <input type="number" id="d_in" step="any" required>
+            </div>
+            <div class="field">
+              <label>Coeficient deformare &lambda;</label>
+              <input type="number" id="lambda" step="any" required>
+              <span class="hint">0.93-0.935 joasa presiune; 0.945-0.95 inalta presiune</span>
+            </div>
+          </div>
+        </details>
+
+        <details class="field-group">
+          <summary>4 &middot; Rezistenta la rulare si aerodinamica <span class="chev">&rsaquo;</span></summary>
+          <div class="fg-body">
+            <div class="field">
+              <label>Tip pneu (tab. 3.14)</label>
+              <select id="tipPneuRulare">
+                <option value="0">Radial — cord metalic</option>
+                <option value="1">Radial — cord textil</option>
+                <option value="2">Diagonal — sectiune joasa</option>
+                <option value="3">Diagonal — superbalon</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>f0 — coeficient baza</label>
+              <input type="number" id="f0" step="any" required>
+            </div>
+            <div class="field">
+              <label>f02 <span class="unit">h²/km²</span></label>
+              <input type="number" id="f02" step="any" required>
+            </div>
+            <div class="field">
+              <label>Tip caroserie (tab. 3.17/3.18)</label>
+              <select id="caroserieSelect"></select>
+            </div>
+            <div class="field">
+              <label>Coeficient rezistenta aer Cx</label>
+              <input type="number" id="Cx" step="any" required>
+            </div>
+            <div class="field">
+              <label>Sectiune transversala A <span class="unit">m²</span></label>
+              <input type="number" id="A" step="any" required>
+            </div>
+          </div>
+        </details>
+
+        <details class="field-group">
+          <summary>5 &middot; Transmisie <span class="chev">&rsaquo;</span></summary>
+          <div class="fg-body">
+            <div class="field">
+              <label>&eta; cutie distributie</label>
+              <input type="number" id="eta_cd" step="any" required>
+            </div>
+            <div class="field">
+              <label>&eta; cutie viteze</label>
+              <input type="number" id="eta_cv" step="any" required>
+            </div>
+            <div class="field">
+              <label>&eta; transmisie cardanica</label>
+              <input type="number" id="eta_c" step="any" required>
+            </div>
+            <div class="field">
+              <label>&eta; transmisie principala</label>
+              <input type="number" id="eta_0" step="any" required>
+            </div>
+            <div class="field">
+              <label>&eta; transmisie finala</label>
+              <input type="number" id="eta_f" step="any" required>
+            </div>
+            <div class="field">
+              <label>Factor n<sub>vmax</sub>/n<sub>n</sub></label>
+              <input type="number" id="nvmax_factor" step="any" required>
+              <span class="hint">1.05 - 1.25</span>
+            </div>
+            <div class="field">
+              <label>Panta maxima &alpha;max <span class="unit">grade</span></label>
+              <input type="number" id="alphaMax_deg" step="any" required>
+            </div>
+            <div class="field">
+              <label>Raport treapta I (i<sub>cv1</sub>)</label>
+              <input type="number" id="icvI_book" step="any" required>
+              <span class="hint">6-8 autocamioane; 3-4 autoturisme</span>
+            </div>
+            <div class="field">
+              <label>Numar trepte cutie</label>
+              <input type="number" id="nTrepte" step="1" required>
+            </div>
+            <div class="field">
+              <label>Coeficient aderenta &phi; (urcare panta)</label>
+              <input type="number" id="phi_drum" step="any" required>
+            </div>
+          </div>
+        </details>
+
+        <details class="field-group">
+          <summary>6 &middot; Frânare <span class="chev">&rsaquo;</span></summary>
+          <div class="fg-body">
+            <div class="field">
+              <label>Drum referinta franare</label>
+              <select id="drumFranareSelect"></select>
+            </div>
+            <div class="field">
+              <label>Coeficient aderenta &phi;</label>
+              <input type="number" id="phiFranare" step="any" required>
+            </div>
+            <div class="field">
+              <label>Coeficient rulare f</label>
+              <input type="number" id="fFranare" step="any" required>
+            </div>
+            <div class="field">
+              <label>Timp reactie t0 <span class="unit">s</span></label>
+              <input type="number" id="t0" step="any" required>
+            </div>
+            <div class="field">
+              <label>Timp intarziere t1' <span class="unit">s</span></label>
+              <input type="number" id="t1p" step="any" required>
+            </div>
+            <div class="field">
+              <label>Timp crestere forta t1'' <span class="unit">s</span></label>
+              <input type="number" id="t1pp" step="any" required>
+            </div>
+          </div>
+        </details>
+
+        <details class="field-group">
+          <summary>7 &middot; Maniabilitate &amp; stabilitate <span class="chev">&rsaquo;</span></summary>
+          <div class="fg-body">
+            <div class="field">
+              <label>Ecartament fata E1 <span class="unit">m</span></label>
+              <input type="number" id="E1" step="any" required>
+            </div>
+            <div class="field">
+              <label>Ecartament spate E2 <span class="unit">m</span></label>
+              <input type="number" id="E2" step="any" required>
+            </div>
+            <div class="field">
+              <label>Unghi bracare maxim interior &theta;imax <span class="unit">grade</span></label>
+              <input type="number" id="thetaImax_deg" step="any" required>
+            </div>
+            <div class="field">
+              <label>&phi; transversal (stabilitate)</label>
+              <input type="number" id="phiTransversal" step="any" required>
+            </div>
+          </div>
+        </details>
+
+        <div class="btn-row">
+          <button type="button" class="btn primary" id="btnCalculeaza">Calculeaza proiectul complet &rarr;</button>
+          <button type="button" class="btn ghost" id="btnReset">Reseteaza la valori implicite</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ---------- PANEL 2: TRACTIUNE ---------- -->
+    <section class="panel" id="panel-tractiune">
+      <div class="panel-head">
+        <div>
+          <p class="panel-eyebrow">Pasul 02 &middot; par. 3.4 — 3.6</p>
+          <h2 class="panel-title">Calculul de tracțiune</h2>
+        </div>
+        <p class="panel-desc">Caracteristica externa a motorului, viteza maxima, rapoartele cutiei de viteze, bilantul de tractiune/putere, caracteristica dinamica, accelerația și demarajul.</p>
+      </div>
+      <div id="tractiuneOut"></div>
+    </section>
+
+    <!-- ---------- PANEL 3: FRANARE ---------- -->
+    <section class="panel" id="panel-franare">
+      <div class="panel-head">
+        <div>
+          <p class="panel-eyebrow">Pasul 03 &middot; par. 3.7</p>
+          <h2 class="panel-title">Calculul la frânare</h2>
+        </div>
+        <p class="panel-desc">Decelerația maximă, timpul și spațiul minim de frânare, spațiul de oprire total și repartiția forței de frânare pe punți.</p>
+      </div>
+      <div id="franareOut"></div>
+    </section>
+
+    <!-- ---------- PANEL 4: MANIABILITATE ---------- -->
+    <section class="panel" id="panel-maniabilitate">
+      <div class="panel-head">
+        <div>
+          <p class="panel-eyebrow">Pasul 04 &middot; par. 3.8</p>
+          <h2 class="panel-title">Maniabilitate &amp; stabilitate</h2>
+        </div>
+        <p class="panel-desc">Unghiurile de bracare, raza minimă de virare, fâșia de gabarit, stabilitatea longitudinală la urcare/coborâre și stabilitatea transversală la derapare/răsturnare.</p>
+      </div>
+      <div id="maniabilitateOut"></div>
+    </section>
+
+    <!-- ---------- PANEL 5: RAPORT ---------- -->
+    <section class="panel" id="panel-raport">
+      <div class="panel-head">
+        <div>
+          <p class="panel-eyebrow">Pasul 05</p>
+          <h2 class="panel-title">Raport final</h2>
+        </div>
+        <p class="panel-desc">Genereaza documentul PDF complet, cu toate tabelele de calcul si graficele, gata de predat sau arhivat.</p>
+      </div>
+
+      <div id="raportSummary"></div>
+
+      <div class="btn-row">
+        <button class="btn primary" id="btnGenPdf">Genereaza raport PDF &darr;</button>
+        <button class="btn ghost" id="btnExportJson">Exporta parametri (JSON)</button>
+        <label class="btn ghost" style="cursor:pointer;">
+          Incarca parametri (JSON)
+          <input type="file" id="importJson" accept="application/json" style="display:none;">
+        </label>
+      </div>
+      <div id="pdfProgress" style="margin-top:16px;"></div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- printable area folosit doar pentru randare canvas->pdf, ascuns vizual -->
+<div id="printRoot" style="position:fixed; left:-9999px; top:0; width:760px; background:#fff;"></div>
+
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/report.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
