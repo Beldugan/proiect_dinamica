@@ -78,4 +78,4 @@ Aplicația este un instrument de **asistare a calculului**, nu un substitut pent
 
 ## Licență
 
-Acest cod este oferit ca instrument educațional auxiliar. Formulele și tabelele de referință aparțin îndrumarului original "Dinamica Autovehiculelor" (Prof.univ.dr.ing. Manea Adriana-Teodora, Universitatea "Ovidius" Constanța).
+Acest cod este oferit ca instrument educațional auxiliar. 
